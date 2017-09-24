@@ -131,8 +131,8 @@ def CCRA(S0,K,r,div,sigma,T,N):
     d = 1/u
     qu = (math.exp(r*delta) - d)/(u - d)
     qd = 1 - qu
-    VStock = np.zeros((25000,25000))
-    VOption = np.zeros((25000,25000))
+    VStock = np.zeros((30000,30000))
+    VOption = np.zeros((30000,30000))
     j = N
     for i in range(j+1):
         VStock[j,i] = S0 * u**i * d ** (N - i)
@@ -145,18 +145,16 @@ def CCRA(S0,K,r,div,sigma,T,N):
     return VOption[0,0]
 
 # initial position
-n1 = 500
-n2 = 1000
-m = 1
-N = np.zeros((100))
-N[0] = n1
-N[1] = n2
-Er = np.zeros((100))
-Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n1) - CCRA(S0,K,r,div,sigma,T,n1-1))
-Er[1] = abs(CCRA(S0,K,r,div,sigma,T,n2) - CCRA(S0,K,r,div,sigma,T,n2-1))
+
+n = 10000
+m = 0
+N = np.zeros((30000))
+N[0] = n
+Er = np.zeros((30000))
+Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n) - CCRA(S0,K,r,div,sigma,T,n-1))
 
 while True:
-    N[m+1] = N[m] + 500
+    N[m+1] = N[m] + 1
     Er[m+1] = abs(CCRA(S0,K,r,div,sigma,T,int(N[m+1])) - CCRA(S0,K,r,div,sigma,T,
       int(N[m+1])-1))
     if Er[m+1] < 0.0000001:
