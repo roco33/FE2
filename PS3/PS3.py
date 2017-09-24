@@ -22,19 +22,30 @@ d2 = d1 - sigma * math.sqrt(T)
 P = norm.cdf(-d2) * K * math.exp(-r*T) - norm.cdf(-d1) * S0
 
 
-# b.
-# CCR
 
-P1 = np.array([])
-
-def CCR(S0, K, r, div, sigma, T, N, method):
+# binomial valuation function
+def binomial(S0, K, r, div, sigma, T, N, method):
     delta = T/N
     VStock = np.zeros((601,601))
     VOption = np.zeros((601,601))
     if method == 'CCR':
         u = math.exp(sigma * math.sqrt(delta))
         d = 1/u
-        
+    elif method == 'RB':
+        u = math.exp((r-div-0.5*sigma**2)*delta+sigma*math.sqrt(delta))
+        d = math.exp((r-div-0.5*sigma**2)*delta-sigma*math.sqrt(delta))
+    elif method == 'LR':
+        d1 = 1 / (math.sqrt(T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
+        d2 = d1 - sigma * math.sqrt(T)
+        k = 1 if d2 > 0 else -1
+        l = 1 if d1 > 0 else -1
+        q = 1/2 + k * math.sqrt(1/4-1/4*math.exp(-(d2/(N+1/3))**2*(N+1/6)))
+        q_star = 1/2 + l * math.sqrt(1/4-1/4*math.exp(-(d1/(N+1/3))**2*(N+1/6)))
+        u = math.exp((r-div)*delta)*q_star/q
+        d = (math.exp((r-div)*delta)-q*u)/(1-q)
+    else:
+        print("Unknown method")
+        return
     qu = (math.exp(r*delta) - d)/(u - d)
     qd = 1 - qu
     j = N
@@ -48,9 +59,13 @@ def CCR(S0, K, r, div, sigma, T, N, method):
 
     return VOption[0,0]
 
+# b.
+# CCR
+
+P1 = np.array([])
 
 for N in range(50,501):
-    P1.append(CCR(S0,K,r,div,sigma,T,N))
+    P1=np.append(P1,binomial(S0,K,r,div,sigma,T,N,'CCR'))
 
 plt.plot(np.arange(50,501), P1-P)
 plt.show()
@@ -59,30 +74,10 @@ plt.show()
 # c.
 # R&B
 
-P2 = list()
-
-def RB(S0,K,r,div,sigma,T,N):
-    delta = T/N
-    u = math.exp((r-div-0.5*sigma**2)*delta+sigma*math.sqrt(delta))
-    d = math.exp((r-div-0.5*sigma**2)*delta-sigma*math.sqrt(delta))
-    qu = (math.exp(r*delta) - d)/(u - d)
-    qd = 1 - qu
-    VStock = np.zeros((601,601))
-    VOption = np.zeros((601,601))
-    j = N
-    for i in range(j+1):
-        VStock[j,i] = S0 * u**i * d ** (N - i)
-        VOption[j,i] = max(K - VStock[j,i], 0)
-    for j in range(N-1,-1,-1):
-        for i in range(j,-1,-1):
-            VOption[j,i] = math.exp(-r * delta) * (qu * VOption[j+1,i+1] +
-                   qd * VOption[j+1,i])
-
-    return VOption[0,0]
-
+P2 = np.array([])
 
 for N in range(50,501):
-    P2.append(RB(S0,K,r,div,sigma,T,N))
+    P2 = np.append(P2,binomial(S0,K,r,div,sigma,T,N,'RB'))
 
 plt.plot(np.arange(50,501), P2-P)
 plt.show()
@@ -91,35 +86,10 @@ plt.show()
 # d.
 # L&R
 
-P3 = list()
-
-def LR(S0,K,r,div,sigma,T,N):
-    delta = T/N
-    d1 = 1 / (math.sqrt(T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
-    d2 = d1 - sigma * math.sqrt(T)
-    k = 1 if d2 > 0 else -1
-    l = 1 if d1 > 0 else -1
-    q = 1/2 + k * math.sqrt(1/4-1/4*math.exp(-(d2/(N+1/3))**2*(N+1/6)))
-    q_star = 1/2 + l * math.sqrt(1/4-1/4*math.exp(-(d1/(N+1/3))**2*(N+1/6)))
-    u = math.exp((r-div)*delta)*q_star/q
-    d = (math.exp((r-div)*delta)-q*u)/(1-q)
-    qu = (math.exp(r*delta) - d)/(u - d)
-    qd = 1 - qu
-    VStock = np.zeros((601,601))
-    VOption = np.zeros((601,601))
-    j = N
-    for i in range(j+1):
-        VStock[j,i] = S0 * u**i * d ** (N - i)
-        VOption[j,i] = max(K - VStock[j,i], 0)
-    for j in range(N-1,-1,-1):
-        for i in range(j,-1,-1):
-            VOption[j,i] = math.exp(-r * delta) * (qu * VOption[j+1,i+1] +
-                   qd * VOption[j+1,i])
-
-    return VOption[0,0]
+P3 = np.array([])
 
 for N in range(50,501):
-    P3.append(LR(S0,K,r,div,sigma,T,N))
+    P3 = np.append(P3,binomial(S0,K,r,div,sigma,T,N,'LR'))
 
 plt.plot(np.arange(50,501), P3-P)
 plt.show()
@@ -132,9 +102,8 @@ P4 = np.array([])
 P5 = np.array([])
 
 for n in N:
-    P4 = np.append(P4,CCR(S0,K,r,div,sigma,T,n))
-    P5 = np.append(P5,CCR(S0,K,r,div,sigma,T,2*n))
-
+    P4 = np.append(P4,binomial(S0,K,r,div,sigma,T,n,'CCR'))
+    P5 = np.append(P5,binomial(S0,K,r,div,sigma,T,2*n,'CCR'))
 
 plt.plot(N,P4-P,label="simple lattic")
 plt.plot(N,(P4*N-P5*2*N)/(-N)-P, label="extapolating")
@@ -147,8 +116,8 @@ P6 = np.array([])
 P7 = np.array([])
 
 for n in N1:
-    P6 = np.append(P6,LR(S0,K,r,div,sigma,T,n))
-    P7 = np.append(P7,LR(S0,K,r,div,sigma,T,2*(n-1)-1))
+    P6 = np.append(P6,binomial(S0,K,r,div,sigma,T,n,'LR'))
+    P7 = np.append(P7,binomial(S0,K,r,div,sigma,T,2*(n-1)-1,'LR'))
 
 plt.plot(N1,P6-P,N1,P7-P)
 plt.show()
@@ -156,37 +125,38 @@ plt.show()
 
 # 2.
 # a. memory error
-#def CCRA(S0,K,r,div,sigma,T,N):
-#    delta = T/N
-#    u = math.exp(sigma * math.sqrt(delta))
-#    d = 1/u
-#    qu = (math.exp(r*delta) - d)/(u - d)
-#    qd = 1 - qu
-#    VStock = np.zeros((5000,5000))
-#    VOption = np.zeros((5000,5000))
-#    j = N
-#    for i in range(j+1):
-#        VStock[j,i] = S0 * u**i * d ** (N - i)
-#        VOption[j,i] = max(K - VStock[j,i], 0)
-#    for j in range(N-1,-1,-1):
-#        for i in range(j,-1,-1):
-#            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,i+1] +
-#                   qd * VOption[j+1,i]),0)
-#
-#    return VOption[0,0]
+def CCRA(S0,K,r,div,sigma,T,N):
+    delta = T/N
+    u = math.exp(sigma * math.sqrt(delta))
+    d = 1/u
+    qu = (math.exp(r*delta) - d)/(u - d)
+    qd = 1 - qu
+    VStock = np.zeros((25000,25000))
+    VOption = np.zeros((25000,25000))
+    j = N
+    for i in range(j+1):
+        VStock[j,i] = S0 * u**i * d ** (N - i)
+        VOption[j,i] = max(K - VStock[j,i], 0)
+    for j in range(N-1,-1,-1):
+        for i in range(j,-1,-1):
+            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,i+1] +
+                   qd * VOption[j+1,i]),0)
+
+    return VOption[0,0]
 #
 ## initial position
-#N = 500
-#m = 1
-#PA = np.zeros((5000))
-#
-#PA[0] = CCRA(S0,K,r,div,sigma,T,N)
-#N = N + 500
-#
-#while True:
-#    PA[m] = CCRA(S0,K,r,div,sigma,T,N)
-#    if abs(PA[m] - PA[m-1]) < 0.0000001:
-#        break
-#    m = m + 1
-#    N = N + 500
+N = 500
+m = 1
+PA = np.zeros((5000))
+
+PA[0] = CCRA(S0,K,r,div,sigma,T,N)
+N = N + 500
+
+while True:
+    PA[m] = CCRA(S0,K,r,div,sigma,T,N)
+    if abs(PA[m] - PA[m-1]) < 0.0000001:
+        break
+    m = m + 1
+    N = N + 2500
+    print(N)
     
