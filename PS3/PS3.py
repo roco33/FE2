@@ -143,20 +143,33 @@ def CCRA(S0,K,r,div,sigma,T,N):
                    qd * VOption[j+1,i]),0)
 
     return VOption[0,0]
-#
-## initial position
-N = 500
-m = 1
-PA = np.zeros((5000))
 
-PA[0] = CCRA(S0,K,r,div,sigma,T,N)
-N = N + 500
+# initial position
+n1 = 500
+n2 = 1000
+m = 1
+N = np.zeros((100))
+N[0] = n1
+N[1] = n2
+Er = np.zeros((100))
+Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n1) - CCRA(S0,K,r,div,sigma,T,n1-1))
+Er[1] = abs(CCRA(S0,K,r,div,sigma,T,n2) - CCRA(S0,K,r,div,sigma,T,n2-1))
 
 while True:
-    PA[m] = CCRA(S0,K,r,div,sigma,T,N)
-    if abs(PA[m] - PA[m-1]) < 0.0000001:
+    N[m+1] = N[m] + 500
+    Er[m+1] = abs(CCRA(S0,K,r,div,sigma,T,int(N[m+1])) - CCRA(S0,K,r,div,sigma,T,
+      int(N[m+1])-1))
+    if Er[m+1] < 0.0000001:
         break
     m = m + 1
-    N = N + 2500
-    print(N)
+    print(N[m])
+    print(Er[m])
     
+# b
+
+#PA1 = np.array([])
+#
+#for N in range(50, 501):
+#    PA1.append(CCRA(S0,K,r,div,sigma,T,N))
+#
+#plt.plot(np.arange(50,501), PA1)
