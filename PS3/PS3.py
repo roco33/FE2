@@ -163,3 +163,15 @@ Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n) - CCRA(S0,K,r,div,sigma,T,n-1))
 #    PA1.append(CCRA(S0,K,r,div,sigma,T,N))
 #
 #plt.plot(np.arange(50,501), PA1)
+
+
+
+
+# 3
+
+B = 95
+
+h1 = (math.log(B**2/(K*S0))+(r-div+1/2*sigma**2)*T)/(sigma*math.sqrt(T))
+h2 = (math.log(B**2/(K*S0))-(r-div+1/2*sigma**2)*T)/(sigma*math.sqrt(T))
+
+V = S0 * math.exp(-div*T) * norm.cdf(d1) - K math.exp(-r*T)*norm.cdf(d2) -(B/S0)
