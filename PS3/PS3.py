@@ -139,9 +139,9 @@ def CCRA(S0,K,r,div,sigma,T,N):
         VOption[j,i] = max(K - VStock[j,i], 0)
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):
-            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,i+1] +
-                   qd * VOption[j+1,i]),0)
-
+            VStock[j,i] = S0 * u**i *d ** (j - i)
+            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,i+1] + 
+                   qd * VOption[j+1,i]),max(K - VStock[j,i],0))
     return VOption[0,0]
 
 # initial position
@@ -155,8 +155,8 @@ Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n) - CCRA(S0,K,r,div,sigma,T,n-1))
 
 while True:
     N[m+1] = N[m] + 1
-    Er[m+1] = abs(CCRA(S0,K,r,div,sigma,T,int(N[m+1])) - CCRA(S0,K,r,div,sigma,T,
-      int(N[m+1])-1))
+    Er[m+1] = abs(CCRA(S0,K,r,div,sigma,T,int(N[m+1])) - CCRA(S0,K,r,div,
+      sigma,T,int(N[m+1])-1))
     if Er[m+1] < 0.0000001:
         break
     m = m + 1
