@@ -153,15 +153,7 @@ N[0] = n
 Er = np.zeros((30000))
 Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n) - CCRA(S0,K,r,div,sigma,T,n-1))
 
-while True:
-    N[m+1] = N[m] + 1
-    Er[m+1] = abs(CCRA(S0,K,r,div,sigma,T,int(N[m+1])) - CCRA(S0,K,r,div,
-      sigma,T,int(N[m+1])-1))
-    if Er[m+1] < 0.0000001:
-        break
-    m = m + 1
-    print(N[m])
-    print(Er[m])
+
     
 # b
 
