@@ -16,7 +16,8 @@ div = 0
 sigma = 0.3
 T = 1
 
-d1 = 1 / (math.sqrt(T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
+d1 = 1 / (sigma * math.sqrt(T)) * (math.log(S0/K) + ((r - div) + sigma**2
+                            / 2) * T)
 d2 = d1 - sigma * math.sqrt(T)
 
 P = norm.cdf(-d2) * K * math.exp(-r*T) - norm.cdf(-d1) * S0
@@ -170,8 +171,43 @@ Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n) - CCRA(S0,K,r,div,sigma,T,n-1))
 # 3
 
 B = 95
+T = 0.5
+K = 100
+r = 0.1
 
+d1 = 1 / (sigma * math.sqrt( T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
+d2 = d1 - sigma * math.sqrt(T)
 h1 = (math.log(B**2/(K*S0))+(r-div+1/2*sigma**2)*T)/(sigma*math.sqrt(T))
-h2 = (math.log(B**2/(K*S0))-(r-div+1/2*sigma**2)*T)/(sigma*math.sqrt(T))
+h2 = (math.log(B**2/(K*S0))+(r-div-1/2*sigma**2)*T)/(sigma*math.sqrt(T))
 
-V = S0 * math.exp(-div*T) * norm.cdf(d1) - K math.exp(-r*T)*norm.cdf(d2) -(B/S0)
+V = S0 * math.exp(-div*T) * norm.cdf(d1) - K * math.exp(-r*T)*norm.cdf(d2) -\
+(B/S0)**(1+2*r*sigma**(-2)) *S0* norm.cdf(h1) + (B/S0)**(-1+2*r*sigma**(-2)) * \
+K * math.exp(-r*T)*norm.cdf(h2)
+
+# a
+
+def CCRB(S0,K,r,div,sigma,T,N,B):
+    delta = T/N
+    u = math.exp(sigma * math.sqrt(delta))
+    d = 1/u
+    qu = (math.exp(r*delta) - d)/(u - d)
+    qd = 1 - qu
+    VStock = np.zeros((600,600))
+    MinStock = np.zeros((600))
+    VOption = np.zeros((600,600,600))
+    j = N
+    k = N
+    for i in range(j+1):
+        VStock[j,i] = S0 * u**i * d ** (N - i)
+        MinStock[i] = S0 * d**(N-i)
+        VOption[j,i,k] = max(K - VStock[j,i], 0)
+    for j in range(N-1,-1,-1):
+        for i in range(j,-1,-1):
+            VStock[j,i] = S0 * u**i *d ** (j - i)
+            VOption[j,i] = (0 if VStock[j,i] < B else math.exp(-r * delta) * 
+                   (qu * VOption[j+1,i+1] + qd * VOption[j+1,i]))
+    return VOption[0,0]
+
+PB1 = CCRB(S0,K,r,div,sigma,T,500,95)
+
+
