@@ -125,10 +125,19 @@ plt.show()
 
 
 # 2.
+
+S0 = 100
+K = 105
+r = 0.01
+div = 0
+sigma = 0.3
+T = 1
+
+
 # a. memory error
 def binomialA(S0,K,r,div,sigma,T,N,method):
     delta = T/N
-    if method == 'CCR':
+    if method in ['CCR','BD']:
         u = math.exp(sigma * math.sqrt(delta))
         d = 1/u
     elif method == 'LR':
@@ -148,14 +157,28 @@ def binomialA(S0,K,r,div,sigma,T,N,method):
     VStock = np.zeros((11000,11000))
     VOption = np.zeros((11000,11000))
     j = N
-    for i in range(j+1):
-        VStock[j,i] = S0 * u**i * d ** (N - i)
-        VOption[j,i] = max(K - VStock[j,i], 0)
-    for j in range(N-1,-1,-1):
-        for i in range(j,-1,-1):
-            VStock[j,i] = S0 * u**i *d ** (j - i)
-            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,i+1] + 
-                   qd * VOption[j+1,i]),max(K - VStock[j,i],0))
+    if method in ['CCR','LR']:
+        for i in range(j+1):
+            VStock[j,i] = S0 * u**i * d ** (N - i)
+            VOption[j,i] = max(K - VStock[j,i], 0)
+        for j in range(N-1,-1,-1):
+            for i in range(j,-1,-1):            
+                VStock[j,i] = S0 * u**i *d ** (j - i)
+                VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,
+                       i+1] + qd * VOption[j+1,i]),max(K - VStock[j,i],0))
+    elif method == 'BD':
+        for i in range(j):
+            VStock[j-1,i] = S0 * u**i * d**(j-1-i)
+            d1 = 1 / (sigma * math.sqrt(T-delta)) * (math.log(VStock[j,i]
+            /K) + ((r - div) + sigma**2/ 2) * (T-delta))
+            d2 = d1 - sigma * math.sqrt(T-delta)
+            VOption[j-1,i] = max(K - VStock[j-1,i], norm.cdf(-d2) * K * math.exp
+                   (-r*(T-delta)) - norm.cdf(-d1) * VStock[j-1,i])
+        for j in range(N-2,-1,-1):
+            for i in range(j,-1,-1):
+                VStock[j,i] = S0 * u**i * d**(j-i)
+                VOption[j,i] = max(K-VStock[j,i], math.exp(-r*delta)*(qu*
+                       VOption[j+1,i+1])+qd*VOption[j+1,i])
     return VOption[0,0]
 
 # initial position
@@ -166,9 +189,6 @@ PA = binomialA(S0,K,r,div,sigma,T,n,'CCR')
 Er = abs(binomialA(S0,K,r,div,sigma,T,n,'CCR') - binomialA(S0,K,r,div,sigma,T,
          n-1,'CCR'))
 
-
-
-    
 # b
 
 # CCR
@@ -178,6 +198,17 @@ for N in range(50, 501):
     PA1= np.append(PA1, binomialA(S0,K,r,div,sigma,T,N,'CCR'))
 
 plt.plot(np.arange(50,501), PA1-PA)
+plt.show()
+
+# B&D
+PA2 = np.array([])
+
+for N in range(50,501):
+    PA2 = np.append(PA2, binomialA(S0,K,r,div,sigma,T,N,'BD'))
+
+plt.plot(np.arange(50,501), PA2-PA)
+plt.show()
+
 
 # L&R
 PA3 = np.array([])
@@ -186,15 +217,19 @@ for N in range(50,501):
     PA3 = np.append(PA3, binomialA(S0,K,r,div,sigma,T,N,'LR'))
 
 plt.plot(np.arange(50,501), PA3-PA)
+plt.show()
 
 
 
 # 3
 
-B = 95
-T = 0.5
+S0 = 100
 K = 100
 r = 0.1
+div = 0
+sigma = 0.3
+T = 0.5
+B = 95
 
 d1 = 1 / (sigma * math.sqrt( T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 
                             2) * T)
@@ -213,8 +248,18 @@ def binomialB(S0,K,r,div,sigma,T,N,B,method):
     if method == 'CCR':
         u = math.exp(sigma * math.sqrt(delta))
         d = 1/u
+    elif method == 'LR':
+        d1 = 1 / (math.sqrt(T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
+        d2 = d1 - sigma * math.sqrt(T)
+        k = 1 if d2 > 0 else -1
+        l = 1 if d1 > 0 else -1
+        q = 1/2 + k * math.sqrt(1/4-1/4*math.exp(-(d2/(N+1/3))**2*(N+1/6)))
+        q_star = 1/2 + l * math.sqrt(1/4-1/4*math.exp(-(d1/(N+1/3))**2*(N+1/6)))
+        u = math.exp((r-div)*delta)*q_star/q
+        d = (math.exp((r-div)*delta)-q*u)/(1-q)
     else:
         print("Unknown method")
+        return
     qu = (math.exp(r*delta) - d)/(u - d)
     qd = 1 - qu
     VStock = np.zeros((600,600))
@@ -237,6 +282,49 @@ for N in range(50,501):
     CB1 = np.append(CB1, binomialB(S0,K,r,div,sigma,T,N,B,'CCR'))
 
 plt.plot(np.arange(50,501), CB1-CB)
+plt.show()
 
+
+
+
+#4
+S0 = 100
+K = 100
+B = 95
+r = 0.1
+div = 0
+sigma = 0.3
+T = 0.2
+
+
+def CRRDB(S0,K,r,div,sigma,T,N,B):
+    delta = T/N
+    u = math.exp(sigma * math.sqrt(delta))
+    d = 1/u
+    qu = (math.exp(r*delta) - d)/(u - d)
+    qd = 1 - qu
+    VStock = np.zeros((2000,2000))
+    VOption = np.zeros((2000,2000))
+    j = N
+    for i in range(j+1):
+        VStock[j,i] = S0 * u**i * d ** (N - i)
+        VOption[j,i] = max(VStock[j,i] - K, 0)
+    for j in range(N-1,-1,-1):
+        for i in range(j,-1,-1):
+            VStock[j,i] = S0 * u**i *d ** (j - i)
+            VOption[j,i] = (0 if (VStock[j,i] < B)&(j*delta in [0.04,0.08,
+                   0.12,0.16]) else math.exp(-r * delta) * (qu * VOption[j+1,
+                            i+1] + qd * VOption[j+1,i]))
+    return VOption[0,0]
+
+DCB = 5.6711051343
+
+DCB1 = np.array([])
+
+for N in range(50,1001):
+    DCB1 = np.append(DCB1,CRRDB(S0,K,r,div,sigma,T,N,B))
+
+plt.plot(np.arange(50,1001),DCB1-DCB)
+plt.show()
 
 
