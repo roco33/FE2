@@ -126,14 +126,27 @@ plt.show()
 
 # 2.
 # a. memory error
-def CCRA(S0,K,r,div,sigma,T,N):
+def binomialA(S0,K,r,div,sigma,T,N,method):
     delta = T/N
-    u = math.exp(sigma * math.sqrt(delta))
-    d = 1/u
+    if method == 'CCR':
+        u = math.exp(sigma * math.sqrt(delta))
+        d = 1/u
+    elif method == 'LR':
+        d1 = 1 / (math.sqrt(T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
+        d2 = d1 - sigma * math.sqrt(T)
+        k = 1 if d2 > 0 else -1
+        l = 1 if d1 > 0 else -1
+        q = 1/2 + k * math.sqrt(1/4-1/4*math.exp(-(d2/(N+1/3))**2*(N+1/6)))
+        q_star = 1/2 + l * math.sqrt(1/4-1/4*math.exp(-(d1/(N+1/3))**2*(N+1/6)))
+        u = math.exp((r-div)*delta)*q_star/q
+        d = (math.exp((r-div)*delta)-q*u)/(1-q)
+    else:
+        print("Unknown method")
+        return        
     qu = (math.exp(r*delta) - d)/(u - d)
     qd = 1 - qu
-    VStock = np.zeros((30000,30000))
-    VOption = np.zeros((30000,30000))
+    VStock = np.zeros((11000,11000))
+    VOption = np.zeros((11000,11000))
     j = N
     for i in range(j+1):
         VStock[j,i] = S0 * u**i * d ** (N - i)
@@ -149,22 +162,30 @@ def CCRA(S0,K,r,div,sigma,T,N):
 
 n = 10000
 m = 0
-N = np.zeros((30000))
-N[0] = n
-Er = np.zeros((30000))
-Er[0] = abs(CCRA(S0,K,r,div,sigma,T,n) - CCRA(S0,K,r,div,sigma,T,n-1))
+PA = binomialA(S0,K,r,div,sigma,T,n,'CCR')
+Er = abs(binomialA(S0,K,r,div,sigma,T,n,'CCR') - binomialA(S0,K,r,div,sigma,T,
+         n-1,'CCR'))
+
 
 
     
 # b
 
-#PA1 = np.array([])
-#
-#for N in range(50, 501):
-#    PA1.append(CCRA(S0,K,r,div,sigma,T,N))
-#
-#plt.plot(np.arange(50,501), PA1)
+# CCR
+PA1 = np.array([])
 
+for N in range(50, 501):
+    PA1= np.append(PA1, binomialA(S0,K,r,div,sigma,T,N,'CCR'))
+
+plt.plot(np.arange(50,501), PA1-PA)
+
+# L&R
+PA3 = np.array([])
+
+for N in range(50,501):
+    PA3 = np.append(PA3, binomialA(S0,K,r,div,sigma,T,N,'LR'))
+
+plt.plot(np.arange(50,501), PA3-PA)
 
 
 
@@ -175,32 +196,33 @@ T = 0.5
 K = 100
 r = 0.1
 
-d1 = 1 / (sigma * math.sqrt( T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 2) * T)
+d1 = 1 / (sigma * math.sqrt( T)) * (math.log(S0/K) + ((r - div) + sigma**2 / 
+                            2) * T)
 d2 = d1 - sigma * math.sqrt(T)
 h1 = (math.log(B**2/(K*S0))+(r-div+1/2*sigma**2)*T)/(sigma*math.sqrt(T))
 h2 = (math.log(B**2/(K*S0))+(r-div-1/2*sigma**2)*T)/(sigma*math.sqrt(T))
 
-V = S0 * math.exp(-div*T) * norm.cdf(d1) - K * math.exp(-r*T)*norm.cdf(d2) -\
-(B/S0)**(1+2*r*sigma**(-2)) *S0* norm.cdf(h1) + (B/S0)**(-1+2*r*sigma**(-2)) * \
+CB = S0 * math.exp(-div*T) * norm.cdf(d1) - K * math.exp(-r*T)*norm.cdf(d2) -\
+(B/S0)**(1+2*r*sigma**(-2)) *S0* norm.cdf(h1) + (B/S0)**(-1+2*r*sigma**(-2)) *\
 K * math.exp(-r*T)*norm.cdf(h2)
 
 # a
 
-def CCRB(S0,K,r,div,sigma,T,N,B):
+def binomialB(S0,K,r,div,sigma,T,N,B,method):
     delta = T/N
-    u = math.exp(sigma * math.sqrt(delta))
-    d = 1/u
+    if method == 'CCR':
+        u = math.exp(sigma * math.sqrt(delta))
+        d = 1/u
+    else:
+        print("Unknown method")
     qu = (math.exp(r*delta) - d)/(u - d)
     qd = 1 - qu
     VStock = np.zeros((600,600))
-    MinStock = np.zeros((600))
-    VOption = np.zeros((600,600,600))
+    VOption = np.zeros((600,600))
     j = N
-    k = N
     for i in range(j+1):
         VStock[j,i] = S0 * u**i * d ** (N - i)
-        MinStock[i] = S0 * d**(N-i)
-        VOption[j,i,k] = max(K - VStock[j,i], 0)
+        VOption[j,i] = max(VStock[j,i] - K, 0)
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):
             VStock[j,i] = S0 * u**i *d ** (j - i)
@@ -208,6 +230,13 @@ def CCRB(S0,K,r,div,sigma,T,N,B):
                    (qu * VOption[j+1,i+1] + qd * VOption[j+1,i]))
     return VOption[0,0]
 
-PB1 = CCRB(S0,K,r,div,sigma,T,500,95)
+
+CB1 = np.array([])
+
+for N in range(50,501):
+    CB1 = np.append(CB1, binomialB(S0,K,r,div,sigma,T,N,B,'CCR'))
+
+plt.plot(np.arange(50,501), CB1-CB)
+
 
 
