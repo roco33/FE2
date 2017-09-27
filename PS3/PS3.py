@@ -220,6 +220,32 @@ plt.plot(np.arange(50,501), PA3-PA)
 plt.show()
 
 
+# c
+
+def CRRBound(S0,K,r,div,sigma,T,N):
+    delta = T / N
+    u = math.exp(sigma * math.sqrt(delta))
+    d= 1 / u
+    qu = (math.exp(r*delta - d)/(u-d))
+    qd = 1 - qu
+    VStock = np.zeros((200,200))
+    VOption = np.zeros((200,200))
+    exe_ind = np.zeros((200,200))
+    j = N
+    for i in range(j+1):
+        VStock[j,i] = S0 * u**i * d ** (N - i)
+        VOption[j,i] = max(K - VStock[j,i], 0)
+    for j in range(N-1,-1,-1):
+        for i in range(j,-1,-1):            
+            VStock[j,i] = S0 * u**i *d ** (j - i)
+            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,
+                   i+1] + qd * VOption[j+1,i]),max(K - VStock[j,i],0))
+            exe_ind[j,i] = VOption[j,i] == K - VStock[j,i]
+    return exe_ind
+
+
+
+
 
 # 3
 
