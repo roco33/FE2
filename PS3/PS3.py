@@ -169,7 +169,7 @@ def binomialA(S0,K,r,div,sigma,T,N,method):
     elif method == 'BD':
         for i in range(j):
             VStock[j-1,i] = S0 * u**i * d**(j-1-i)
-            d1 = 1 / (sigma * math.sqrt(T-delta)) * (math.log(VStock[j,i]
+            d1 = 1 / (sigma * math.sqrt(T-delta)) * (math.log(VStock[j-1,i]
             /K) + ((r - div) + sigma**2/ 2) * (T-delta))
             d2 = d1 - sigma * math.sqrt(T-delta)
             VOption[j-1,i] = max(K - VStock[j-1,i], norm.cdf(-d2) * K * math.exp
@@ -312,7 +312,7 @@ def CRRDB(S0,K,r,div,sigma,T,N,B):
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):
             VStock[j,i] = S0 * u**i *d ** (j - i)
-            VOption[j,i] = (0 if (VStock[j,i] < B)&(j*delta in [0.04,0.08,
+            VOption[j,i] = (0 if (VStock[j,i] < B)&((j*delta) in [0.04,0.08,
                    0.12,0.16]) else math.exp(-r * delta) * (qu * VOption[j+1,
                             i+1] + qd * VOption[j+1,i]))
     return VOption[0,0]
@@ -321,10 +321,10 @@ DCB = 5.6711051343
 
 DCB1 = np.array([])
 
-for N in range(50,1001):
+for N in range(50,1010,10):
     DCB1 = np.append(DCB1,CRRDB(S0,K,r,div,sigma,T,N,B))
 
-plt.plot(np.arange(50,1001),DCB1-DCB)
+plt.plot(np.arange(50,1010,10),DCB1-DCB)
 plt.show()
 
 
