@@ -238,12 +238,23 @@ def CRRBound(S0,K,r,div,sigma,T,N):
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):            
             VStock[j,i] = S0 * u**i *d ** (j - i)
-            VOption[j,i] = max(math.exp(-r * delta) * (qu * VOption[j+1,
-                   i+1] + qd * VOption[j+1,i]),max(K - VStock[j,i],0))
-            exe_ind[j,i] = VOption[j,i] == K - VStock[j,i]
+            VOption1 = math.exp(-r * delta) * (qu * VOption[j+1,
+                   i+1] + qd * VOption[j+1,i])
+            VOption_e = K - VStock[j,i]
+            if VOption1 <= VOption_e:
+                VOption[j,i] = VOption_e
+                exe_ind[j,i] = 1
+            else:
+                VOption[j,i] = VOption[j,i]
     return exe_ind
 
-
+A = CRRBound(S0,K,r,div,sigma,T,100)
+b = np.sum(A, axis = 1)[0:99]
+up = b - 1
+down = np.array(range(99)) - up
+delta = T / 100
+u = math.exp(sigma * math.sqrt(delta))
+c = S0 * u**(up-down)
 
 
 
@@ -325,6 +336,7 @@ T = 0.2
 
 def CRRDB(S0,K,r,div,sigma,T,N,B):
     delta = T/N
+    bar = N/5
     u = math.exp(sigma * math.sqrt(delta))
     d = 1/u
     qu = (math.exp(r*delta) - d)/(u - d)
@@ -338,9 +350,9 @@ def CRRDB(S0,K,r,div,sigma,T,N,B):
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):
             VStock[j,i] = S0 * u**i *d ** (j - i)
-            VOption[j,i] = (0 if (VStock[j,i] < B)&((j*delta) in [0.04,0.08,
-                   0.12,0.16]) else math.exp(-r * delta) * (qu * VOption[j+1,
-                            i+1] + qd * VOption[j+1,i]))
+            VOption[j,i] = qu * VOption[j+1, i+1] + qd * VOption[j+1,i]
+            if (j in [1*bar,2*bar,3*bar,4*bar]) and (VStock[j,i] < B):
+                VOption[j,i] = 0
     return VOption[0,0]
 
 DCB = 5.6711051343
@@ -352,5 +364,4 @@ for N in range(50,1010,10):
 
 plt.plot(np.arange(50,1010,10),DCB1-DCB)
 plt.show()
-
 
