@@ -5,7 +5,6 @@ import math
 from scipy.stats import norm
 import matplotlib.pyplot as plt
 
-
 # 1.
 # a. calculate the B-S value of the put
 
@@ -68,9 +67,11 @@ P1 = np.array([])
 for N in range(50,501):
     P1=np.append(P1,binomial(S0,K,r,div,sigma,T,N,'CCR'))
 
+plt.figure()
 plt.plot(np.arange(50,501), P1-P)
 plt.show()
-
+plt.savefig("1_1.png")
+plt.close()
 
 # c.
 # R&B
@@ -80,8 +81,11 @@ P2 = np.array([])
 for N in range(50,501):
     P2 = np.append(P2,binomial(S0,K,r,div,sigma,T,N,'RB'))
 
+plt.figure()
 plt.plot(np.arange(50,501), P2-P)
 plt.show()
+plt.savefig("1_2.png")
+plt.close()
 
 
 # d.
@@ -92,8 +96,11 @@ P3 = np.array([])
 for N in range(50,501):
     P3 = np.append(P3,binomial(S0,K,r,div,sigma,T,N,'LR'))
 
+plt.figure()
 plt.plot(np.arange(50,501), P3-P)
 plt.show()
+plt.savefig("1_3.png")
+plt.close()
 
 
 # e.
@@ -106,9 +113,12 @@ for n in N:
     P4 = np.append(P4,binomial(S0,K,r,div,sigma,T,n,'CCR'))
     P5 = np.append(P5,binomial(S0,K,r,div,sigma,T,2*n,'CCR'))
 
+plt.figure()
 plt.plot(N,P4-P,label="simple lattic")
 plt.plot(N,(P4*N-P5*2*N)/(-N)-P, label="extapolating")
 plt.show()
+plt.savefig("1_4.png")
+plt.close()
 
 
 N1 = np.array([51, 101, 151, 201, 251])
@@ -120,8 +130,11 @@ for n in N1:
     P6 = np.append(P6,binomial(S0,K,r,div,sigma,T,n,'LR'))
     P7 = np.append(P7,binomial(S0,K,r,div,sigma,T,2*(n-1)-1,'LR'))
 
+plt.figure()
 plt.plot(N1,P6-P,N1,P7-P)
 plt.show()
+plt.savefig("1_5.png")
+plt.close()
 
 
 # 2.
@@ -197,8 +210,11 @@ PA1 = np.array([])
 for N in range(50, 501):
     PA1= np.append(PA1, binomialA(S0,K,r,div,sigma,T,N,'CCR'))
 
+plt.figure()
 plt.plot(np.arange(50,501), PA1-PA)
 plt.show()
+plt.savefig("2_1.png")
+plt.close()
 
 # B&D
 PA2 = np.array([])
@@ -206,8 +222,11 @@ PA2 = np.array([])
 for N in range(50,501):
     PA2 = np.append(PA2, binomialA(S0,K,r,div,sigma,T,N,'BD'))
 
+plt.figure()
 plt.plot(np.arange(50,501), PA2-PA)
 plt.show()
+plt.savefig("2_2.png")
+plt.close()
 
 
 # L&R
@@ -216,8 +235,11 @@ PA3 = np.array([])
 for N in range(50,501):
     PA3 = np.append(PA3, binomialA(S0,K,r,div,sigma,T,N,'LR'))
 
+plt.figure()
 plt.plot(np.arange(50,501), PA3-PA)
 plt.show()
+plt.savefig("2_3.png")
+plt.close()
 
 
 # c
@@ -248,14 +270,22 @@ def CRRBound(S0,K,r,div,sigma,T,N):
                 VOption[j,i] = VOption[j,i]
     return exe_ind
 
-A = CRRBound(S0,K,r,div,sigma,T,100)
-b = np.sum(A, axis = 1)[0:99]
-up = b - 1
-down = np.array(range(99)) - up
+Early_exe_ind = CRRBound(S0,K,r,div,sigma,T,100)
+b = np.sum(Early_exe_ind, axis = 1)[0:99]
+n_up = b - 1
+n_down = np.array(range(99)) - n_up
 delta = T / 100
 u = math.exp(sigma * math.sqrt(delta))
-c = S0 * u**(up-down)
+bin_bound = S0 * u**(n_up-n_down)
+true_bound = np.array([S0*u**i for i in range(99)])
+true_bound[true_bound > K] = K
 
+
+plt.figure()
+plt.plot(bin_bound,'c',true_bound, 'r')
+plt.show()
+plt.savefig("2_4.png")
+plt.close()
 
 
 # 3
@@ -301,25 +331,34 @@ def binomialB(S0,K,r,div,sigma,T,N,B,method):
     qd = 1 - qu
     VStock = np.zeros((600,600))
     VOption = np.zeros((600,600))
+    Lambda = np.array([])
     j = N
-    for i in range(j+1):
-        VStock[j,i] = S0 * u**i * d ** (N - i)
+    for i in range(j+1,-1,-1):
+        VStock[j,i] = S0 * u**i * d **(N - i)
         VOption[j,i] = max(VStock[j,i] - K, 0)
+        if VStock[j,i] < B:
+            VOption[j,i] = 0
+            Lambda = np.append(Lambda, (B-VStock[j,i])/(VStock[j,i+1]-VStock[j,i]))
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):
             VStock[j,i] = S0 * u**i *d ** (j - i)
             VOption[j,i] = (0 if VStock[j,i] < B else math.exp(-r * delta) * 
                    (qu * VOption[j+1,i+1] + qd * VOption[j+1,i]))
-    return VOption[0,0]
+    return VOption[0,0],Lambda[0]
 
 
 CB1 = np.array([])
+Lambda = np.array([])
 
 for N in range(50,501):
-    CB1 = np.append(CB1, binomialB(S0,K,r,div,sigma,T,N,B,'CCR'))
+    CB1 = np.append(CB1, binomialB(S0,K,r,div,sigma,T,N,B,'CCR')[0])
+    Lambda = np.append(Lambda,binomialB(S0,K,r,div,sigma,T,N,B,'CCR')[1])
 
-plt.plot(np.arange(50,501), CB1-CB)
+plt.figure()
+plt.plot(np.arange(50,501),CB1-CB,'b',np.arange(50,501),Lambda,'rs')
 plt.show()
+plt.savefig("3_1.png")
+plt.close()
 
 
 
@@ -343,25 +382,34 @@ def CRRDB(S0,K,r,div,sigma,T,N,B):
     qd = 1 - qu
     VStock = np.zeros((2000,2000))
     VOption = np.zeros((2000,2000))
+    Lambda = np.array([])
     j = N
-    for i in range(j+1):
+    for i in range(j+1,-1,-1):
         VStock[j,i] = S0 * u**i * d ** (N - i)
         VOption[j,i] = max(VStock[j,i] - K, 0)
+        if VStock[j,i] < B:
+            VOption[j,i] = 0
+            Lambda = np.append(Lambda, (B-VStock[j,i])/(VStock[j,i+1]-VStock[j,i]))
     for j in range(N-1,-1,-1):
         for i in range(j,-1,-1):
             VStock[j,i] = S0 * u**i *d ** (j - i)
             VOption[j,i] = qu * VOption[j+1, i+1] + qd * VOption[j+1,i]
             if (j in [1*bar,2*bar,3*bar,4*bar]) and (VStock[j,i] < B):
                 VOption[j,i] = 0
-    return VOption[0,0]
+    return VOption[0,0],Lambda[0]
 
 DCB = 5.6711051343
 
 DCB1 = np.array([])
+Lambda = np.array([])
 
 for N in range(50,1010,10):
-    DCB1 = np.append(DCB1,CRRDB(S0,K,r,div,sigma,T,N,B))
+    DCB1 = np.append(DCB1,CRRDB(S0,K,r,div,sigma,T,N,B)[0])
+    Lambda = np.append(Lambda, CRRDB(S0,K,r,div,sigma,T,N,B)[1])
 
-plt.plot(np.arange(50,1010,10),DCB1-DCB)
+plt.figure()
+plt.plot(np.arange(50,1010,10),DCB1-DCB,'c',np.arange(50,1010,10),Lambda,'rs')
 plt.show()
+plt.savefig("4_1.png")
+plt.close()
 
