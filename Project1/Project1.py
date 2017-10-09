@@ -23,20 +23,20 @@ K = 72.592
 # redemption price
 red = [95.28, 99.81, 104.35]
 # number of periods for a day
-N = 750
+N = 900
 # stock tree
 VStock = np.zeros((1000,1000))
 # price tree
 VOption = np.zeros((1000,1000))
 # barrie date
-barr = 1/4
+barr = N/12
 
 delta = 3/N
 
 u = math.exp((r-div)*delta + sigma*math.sqrt(delta))
 d = math.exp((r-div)*delta - sigma*math.sqrt(delta))
 
-qu = (math.exp(r*delta)-d) / (u-d)
+qu = (math.exp((r-div)*delta)-d) / (u-d)
 qd = 1 - qu
 
 for i in range(N+1):
@@ -44,13 +44,13 @@ for i in range(N+1):
     if VStock[N,i] >= K:
         VOption[N,i] = 10.2125
     else:
-        VOption[N,i] = 10 * VStock[N+1,i] / S0
+        VOption[N,i] = 10 * VStock[N,i] / S0
 for j in range(N-1, -1, -1):
     for i in range(j,-1,-1):
         VStock[j,i] = S0 * u**i * d**(j-i)
-        VOption[j,i] = qu * VOption[j+1,i+1] + qd * VOption[j+1,i+1]
+        VOption[j,i] = qu * VOption[j+1,i+1] + qd * VOption[j+1,i]
         for k in range(3):
-            if j in k + np.array([1/4, 2/4,3/4,1]):
+            if j in k*N/3 + np.array([barr*1, barr*2, barr*3, barr*4]):
                 if VStock[j,i] > K and VStock[j,i] <= red[k] :
                     VOption[j,i] = VOption[j,i] + 0.2125
                 elif VStock[j,i] > red[k]:
