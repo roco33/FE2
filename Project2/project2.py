@@ -8,15 +8,20 @@ Created on Sat Nov 11 03:05:48 2017
 import numpy as np
 
 jmax = 100
-imax = 1000
-s0 = 109.893
+imax = 1250
+s0 = 156.99
 D = 15.875
-r = 
-div = 
+T = 1.25
+r = 0.02
+sig = 0.2
+div = 0.02
 smin = 0
 smax = 330
+delt = T / imax
+dels = (smax - smin) / jmax
 
-S = np.zeros(jmax + 1)
+
+s = np.zeros(jmax + 1)
 A = np.zeros(jmax + 1)
 B = np.zeros(jmax + 1)
 C = np.zeros(jmax + 1)
@@ -48,13 +53,11 @@ for i in range(imax - 1, -1, -1):
     D[0] = B[0] * V[0] + C[0] * VT[1] 
     # D across 1 to (jmax-1)
     for j in range(1, jmax, 1):
-        if i % (imax / 8) == 0:
+        if i % (imax / 5) == 0:
             if s[j] >= s0:
                 VT[j] = 1000
-            elif s[j] / s0 > 0.7 & s[j] / s0 < 1:
-                VT[j] = 1000 + D
-            else:
-                VT[j] = 1000
+            elif s[j] / s0 >= 0.7 and s[j] / s0 < 1:
+                VT[j] = VT[j] + D
         D1 = -VT[j - 1] * A[j]
         D2 = -VT[j] * B[j]
         D3 = -VT[j + 1] * C[j]
@@ -62,7 +65,8 @@ for i in range(imax - 1, -1, -1):
     A[jmax] = 0
     B[jmax] = 1
     C[jmax] = 0
-    D[jmax] = (1000 + D) * np.exp(-div * (i * delt))
+    n = int(i / (imax / 5)) * (imax / 5) # the last review period 
+    D[jmax] = (1000 + D) * np.exp(-div * ((i - n) * delt))
     
     VT = LU(jmax, A, B, C, D, VT)
 
@@ -87,6 +91,11 @@ for i in range(jmax + 1, -1, -1):
     D[0] = B[0] * V[0] + C[0] * VNT[1]
     # D accross 1 to (jmax+1)
     for j in range(1, jmax, 1):
+        if i % (imax / 5) == 0:
+            if s[j] >= s0:
+                VNT[j] = 1000
+            elif s[j] / s0 >= 0.7 and s[j] / s0 < 1:
+                VNT[j] = VNT[j] + D
         D1 = VNT[j - 1] * A[j]
         D2 = VNT[j] * B[j]
         D3 = VNT[j + 1] * C[j]
@@ -94,7 +103,8 @@ for i in range(jmax + 1, -1, -1):
     A[jmax] = 0
     B[jmax] = 1
     C[jmax] = 0
-    D[jmax] = (1000 + D) * np.exp(-div * (i * delt))
+    n = int(i / (imax / 5)) * (imax / 5) # the last review period 
+    D[jmax] = (1000 + D) * np.exp(-div * ((i - n) * delt))
     
     VNT = LU(jmax, A, B, C, D, VNT)
 
@@ -105,7 +115,7 @@ for i in range(jmax + 1, -1, -1):
 
 def LU(jmax, A, B, C, D, V):
     alpha = np.zeros(jmax + 1)
-
+    S = np.zeros(jmax + 1)
     alpha[0] = B[0]
     S[0] = D[0]
     for j in range(1,jmax + 1, 1):
