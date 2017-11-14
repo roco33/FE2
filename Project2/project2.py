@@ -29,8 +29,8 @@ A = np.zeros(jmax + 1)
 B = np.zeros(jmax + 1)
 C = np.zeros(jmax + 1)
 D = np.zeros(jmax + 1)
-V = np.zeros((imax + 1, jmax + 1))
-VT = np.zeros((imax + 1, jmax + 1))
+V = np.zeros((imax, jmax + 1))
+VT = np.zeros((imax, jmax + 1))
 
 
 def LU(jmax, A, B, C, D, V):
@@ -54,11 +54,11 @@ for j in range(jmax + 1):
     s[j] = smin + j * dels
     
     if s[j] / s0 < 0.7:
-        VT[imax+1,j] = s[j] / s0 * 1000
+        VT[imax -1 ,j] = s[j] / s0 * 1000
     elif (s[j] / s0 >= 0.7) and (s[j] / s0 < 1):
-        VT[imax+1,j] = s[j] / s0 * 1000 + cou
+        VT[imax -1 ,j] = s[j] / s0 * 1000 + cou
     else:
-        VT[imax+1,j] = 1000 + cou
+        VT[imax -1 ,j] = 1000 + cou
     # A, B, C [0 to jmax]
     A[j] = 0.25 * sig ** 2 * j ** 2 - 0.25 * (r - div) * j
     B[j] = -1 / delt - 0.5 * r - 0.5 * sig ** 2 * j ** 2
@@ -69,12 +69,12 @@ for i in range(imax - 1, -1, -1):
     A[0] = 0
     B[0] = 1
     C[0] = 0
-    D[0] = B[0] * V[0] + C[0] * VT[1] 
+    D[0] = B[0] * VT[i-1,0] + C[0] * VT[i-1,1] 
     # D across 1 to (jmax-1)
     for j in range(1, jmax, 1):
-        D1 = -VT[i+1,j - 1] * A[j]
-        D2 = -VT[i+1,j] * B[j]
-        D3 = -VT[i+1,j + 1] * C[j]
+        D1 = -VT[i-1,j - 1] * A[j]
+        D2 = -VT[i-1,j] * B[j]
+        D3 = -VT[i-1,j + 1] * C[j]
         D[j] = D1 + D2 + D3
         if i % (imax / 5) != 0: # not review date
             A[jmax] = 0    
@@ -82,16 +82,16 @@ for i in range(imax - 1, -1, -1):
             C[jmax] = 0
             n = int(i / (imax / 5)) * (imax / 5) # the last review period 
             D[jmax] = (1000 + cou) * np.exp(-(r - div) * ((i - n) * delt)) 
-            VT[i,:] = LU(jmax, A, B, C, D, VT)
+            VT[i,:] = LU(jmax, A, B, C, D, VT[i,:])
         elif i % (imax / 5) == 0: # review date
-            VT[TAC] = 1000
+            VT[i-1,TAC] = 1000
             A[TAC] = 0
             B[TAC] = 1
             C[TAC] = 0
             D[TAC] = 1000
-            VT[0: TAC + 1] = LU(TAC, A[0: TAC + 1], B[0: TAC + 1], C[0: TAC + 1], D[0: TAC + 1], VT[0: TAC + 1])
+            VT[i-1,0: TAC + 1] = LU(TAC, A[0: TAC + 1], B[0: TAC + 1], C[0: TAC + 1], D[0: TAC + 1], VT[i-1, 0: TAC + 1])
             for j in range(TAC + 1, jmax + 1, 1):
-                VT[j] = 1000          
+                VT[i-1,j] = 1000
                     
 
 # not triggered
