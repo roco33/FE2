@@ -171,7 +171,12 @@ def main():
         VV.append(value[1])
         k = k + 1
         print(str(int(k/len(Tac)*100)) + '%')
+    # plt.show()
+    plt.subplot(121)
     plt.plot(J,VV)
+    slope = np.array([(VV[i+1]-VV[i])/30 for i in range(len(VV)-1)])
+    plt.subplot(122)
+    plt.plot(J[:-1],np.log(slope))
     plt.show()
 
 
