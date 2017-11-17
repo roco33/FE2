@@ -39,8 +39,8 @@ def CN(TAC):
     cou = 15.875 # coupon
     T = 1.25 # maturity
     r = 0.02 
-    sig = 0.16
-    div = 0.022
+    sig = 0.24
+    div = 0.0065
     
     delt = T / imax
     
@@ -57,12 +57,12 @@ def CN(TAC):
     
     # at maturity
     for j in range(jmax + 1):
-        if s[j] / s0 < 0.7:
+        if s[j] / s0 < 1:
             VT[imax -1 ,j] = s[j] / s0 * 1000
-        elif (s[j] / s0 >= 0.7) and (s[j] / s0 < 1):
-            VT[imax -1 ,j] = s[j] / s0 * 1000 + cou
         else:
             VT[imax -1 ,j] = 1000 + cou
+        if s[j] / s0 >= 0.7:
+            VT[imax -1 ,j] = VT[imax - 1, j] + cou
     
     
     for i in range(imax - 1, 0, -1):
@@ -87,7 +87,7 @@ def CN(TAC):
             A[jmax] = 0    
             B[jmax] = 1
             C[jmax] = 0
-            n = [t for t in RD if t >= i][0] # the last review period 
+            n = [t-1 for t in RD if t-1 >= i][0] # the last review period 
             D[jmax] = (1000 + cou) * np.exp(-(r - div) * (n - i) * delt) 
             VT[i-1,:] = LU(A, B, C, D)
         
@@ -97,11 +97,13 @@ def CN(TAC):
             B[TAC] = 1
             C[TAC] = 0
             D[TAC] = 1000
-            VT[i-1,0: TAC+1] = LU(A[0: TAC+1], B[0: TAC+1], C[0: TAC+1], D[0: TAC+1])
-            for j in range(TAC + 1, jmax + 1, 1):
+            VT[i-1,0: TAC] = LU(A[0: TAC], B[0: TAC], C[0: TAC], D[0: TAC])
+            for j in range(TAC, jmax + 1, 1):
                 VT[i-1,j] = 1000
             for j in range(TR, jmax + 1, 1):
                 VT[i-1,j] = VT[i-1,j] + cou
+        else:
+            print("error 1")
                         
     
     A = np.zeros(jmax + 1)
@@ -113,10 +115,10 @@ def CN(TAC):
     # TR to jmax
     for j in range(TR, jmax + 1, 1):
         
-        if s[j] / s0 < 0.7:
-            V[imax-1,j] = 1000
-        else:
+        if s[j] / s0 >= 0.7:
             V[imax-1,j] = 1000 + cou
+#        else:
+#            V[imax-1,j] = 1000
     
         
     for i in range(imax - 1, 0, -1):
@@ -129,7 +131,7 @@ def CN(TAC):
         A[TR] = 0
         B[TR] = 1
         C[TR] = 0
-        D[TR] = V[i-1,j]
+        D[TR] = V[i-1,TR]
         # D accross 1 to (jmax+1)
         for j in range(TR+1, jmax, 1):
             D1 = -V[i,j - 1] * (0.25 * sig ** 2 * j ** 2 - 0.25 * (r - div) * j)
@@ -141,9 +143,9 @@ def CN(TAC):
             A[jmax] = 0
             B[jmax] = 1
             C[jmax] = 0
-            n = [t for t in RD if t >= i][0] # the next review period 
+            n = [t-1 for t in RD if t-1 >= i][0] # the next review period 
             D[jmax] = (1000 + cou) * np.exp(-(r - div) * (n - i) * delt) 
-            V[i-1,TR:jmax+1] = LU(A[TR:jmax+1], B[TR:jmax+1], C[TR:jmax+1], D[TR:jmax+1])
+            V[i-1,TR:jmax] = LU(A[TR:jmax], B[TR:jmax], C[TR:jmax], D[TR:jmax])
     	
         elif i in RD: # review day
             V[i-1,TAC] = 1000
@@ -151,17 +153,19 @@ def CN(TAC):
             B[TAC] = 1
             C[TAC] = 0
             D[TAC] = 1000
-            V[i-1,TR:TAC+1] = LU(A[TR:TAC+1], B[TR:TAC+1], C[TR:TAC+1], D[TR:TAC+1])
-            for j in range(TAC + 1, jmax + 1,1):
+            V[i-1,TR:TAC] = LU(A[TR:TAC], B[TR:TAC], C[TR:TAC], D[TR:TAC])
+            for j in range(TAC, jmax + 1,1):
                 V[i-1,j] = 1000
             for j in range(TR, jmax + 1, 1):
                 V[i-1,j] = V[i-1,j] + cou
+        else:
+            print("error 2")
 
     return 3*TAC, V[0,TAC]
 
 
 def main():
-    Tac = [100 + k * 10 for k in range(100)]
+    Tac = [100 + k * 10 for k in range(10)]
     J = []
     VV = []
     k = 0
@@ -174,7 +178,7 @@ def main():
     # plt.show()
     plt.subplot(121)
     plt.plot(J,VV)
-    slope = np.array([(VV[i+1]-VV[i])/30 for i in range(len(VV)-1)])
+    slope = np.array([abs(VV[i+1]-VV[i])/30 for i in range(len(VV)-1)])
     plt.subplot(122)
     plt.plot(J[:-1],np.log(slope))
     plt.show()
